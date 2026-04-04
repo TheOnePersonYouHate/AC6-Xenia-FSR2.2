@@ -201,6 +201,8 @@ class Presenter {
       // AMD FidelityFX Super Resolution upsampling, Contrast Adaptive
       // Sharpening otherwise.
       kFsr,
+      // AMD FidelityFX Super Resolution 2.0 (temporal upscaling)
+      kFsr2,
     };
 
     // This value is used as a lerp factor.
@@ -218,7 +220,7 @@ class Presenter {
     // or 4320p).
     static constexpr uint32_t kFsrMaxUpscalingPassesMax = 4;
 
-    static constexpr float kFsrSharpnessReductionMin = 0.0f;
+    static constexpr float kFsrSharpnessReductionMin = -2.0f;
     // "Values above 2.0 won't make a visible difference."
     // https://raw.githubusercontent.com/GPUOpen-Effects/FidelityFX-FSR/master/docs/FidelityFX-FSR-Overview-Integration.pdf
     static constexpr float kFsrSharpnessReductionMax = 2.0f;
@@ -397,6 +399,11 @@ class Presenter {
     kFsrRcas,
     kFsrRcasDither,
 
+    // FSR2
+    kFsr2Easu,
+    kFsr2Rcas,
+    kFsr2RcasDither,
+
     kCount,
   };
 
@@ -404,24 +411,20 @@ class Presenter {
       GuestOutputPaintEffect effect) {
     switch (effect) {
       case GuestOutputPaintEffect::kBilinear:
-      // Dithering is never performed in intermediate passes because it may be
-      // interpreted as features by the subsequent passes.
       case GuestOutputPaintEffect::kBilinearDither:
       case GuestOutputPaintEffect::kCasSharpenDither:
       case GuestOutputPaintEffect::kCasResampleDither:
       case GuestOutputPaintEffect::kFsrRcasDither:
         return false;
       default:
-        // The result of any other effect can be stretched with bilinear
-        // filtering to the final resolution.
         return true;
     };
   }
-
   static constexpr bool CanGuestOutputPaintEffectBeFinal(
       GuestOutputPaintEffect effect) {
     switch (effect) {
       case GuestOutputPaintEffect::kFsrEasu:
+      case GuestOutputPaintEffect::kFsr2Easu:   // added
         return false;
       default:
         return true;

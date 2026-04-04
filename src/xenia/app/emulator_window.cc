@@ -406,7 +406,7 @@ void EmulatorWindow::DisplayConfigDialog::OnDraw(ImGuiIO& io) {
     ui::Presenter::GuestOutputPaintConfig new_presenter_config =
         current_presenter_config;
 
-    if (ImGui::TreeNodeEx(
+   if (ImGui::TreeNodeEx(
             "Resampling and sharpening",
             ImGuiTreeNodeFlags_Framed | ImGuiTreeNodeFlags_DefaultOpen)) {
       // Filtering effect.
@@ -421,6 +421,20 @@ void EmulatorWindow::DisplayConfigDialog::OnDraw(ImGuiIO& io) {
       ImGui::RadioButton(
           "AMD FidelityFX Super Resolution 1.0 (FSR)", &new_effect_index,
           int(ui::Presenter::GuestOutputPaintConfig::Effect::kFsr));
+      ImGui::RadioButton(
+          "AMD FidelityFX Super Resolution 2.0 (FSR2)", &new_effect_index,
+          int(ui::Presenter::GuestOutputPaintConfig::Effect::kFsr2));
+
+      // FSR2 sharpness slider (only show when FSR2 is selected)
+      if (new_effect_index == int(ui::Presenter::GuestOutputPaintConfig::Effect::kFsr2)) {
+        float sharpness = new_presenter_config.GetFsrSharpnessReduction();
+        if (ImGui::SliderFloat("FSR2 Sharpness Reduction", &sharpness, -2.0f, 2.0f, "%.2f")) {
+          new_presenter_config.SetFsrSharpnessReduction(sharpness);
+        }
+        ImGui::SameLine();
+        ImGui::Text("(lower = sharper)");
+      }
+
       new_presenter_config.SetEffect(
           ui::Presenter::GuestOutputPaintConfig::Effect(new_effect_index));
 
@@ -970,6 +984,10 @@ EmulatorWindow::GetGuestOutputPaintEffectForCvarValue(
   if (cvar_value == GetCvarValueForGuestOutputPaintEffect(
                         ui::Presenter::GuestOutputPaintConfig::Effect::kFsr)) {
     return ui::Presenter::GuestOutputPaintConfig::Effect::kFsr;
+  }
+  if (cvar_value == GetCvarValueForGuestOutputPaintEffect(
+                        ui::Presenter::GuestOutputPaintConfig::Effect::kFsr2)) {
+    return ui::Presenter::GuestOutputPaintConfig::Effect::kFsr2;
   }
   return ui::Presenter::GuestOutputPaintConfig::Effect::kBilinear;
 }

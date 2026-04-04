@@ -468,18 +468,22 @@ void Presenter::SetGuestOutputPaintConfigFromUIThread(
     modified = true;
     request_repaint = true;
   }
+
   if (guest_output_paint_config_.GetFsrSharpnessReduction() !=
       new_config.GetFsrSharpnessReduction()) {
     modified = true;
-    if (new_config.GetEffect() == GuestOutputPaintConfig::Effect::kFsr) {
+    if (new_config.GetEffect() == GuestOutputPaintConfig::Effect::kFsr ||
+        new_config.GetEffect() == GuestOutputPaintConfig::Effect::kFsr2) {
       request_repaint = true;
     }
   }
+
   if (guest_output_paint_config_.GetCasAdditionalSharpness() !=
       new_config.GetCasAdditionalSharpness()) {
     modified = true;
     if (new_config.GetEffect() == GuestOutputPaintConfig::Effect::kCas ||
-        new_config.GetEffect() == GuestOutputPaintConfig::Effect::kFsr) {
+        new_config.GetEffect() == GuestOutputPaintConfig::Effect::kFsr ||
+        new_config.GetEffect() == GuestOutputPaintConfig::Effect::kFsr2) {
       request_repaint = true;
     }
   }
@@ -834,7 +838,8 @@ Presenter::GuestOutputPaintFlow Presenter::GetGuestOutputPaintFlow(
   uint32_t output_height_clamped = std::min(output_height, max_rt_height);
 
   if (config.GetEffect() == GuestOutputPaintConfig::Effect::kCas ||
-      config.GetEffect() == GuestOutputPaintConfig::Effect::kFsr) {
+      config.GetEffect() == GuestOutputPaintConfig::Effect::kFsr ||
+      config.GetEffect() == GuestOutputPaintConfig::Effect::kFsr2) {
     // FidelityFX Super Resolution and Contrast Adaptive Sharpening only work
     // good for up to 2x2 upscaling due to the way they fetch texels.
     // CAS is primarily a sharpening filter, not an upscaling one (its upscaling
@@ -856,7 +861,8 @@ Presenter::GuestOutputPaintFlow Presenter::GetGuestOutputPaintFlow(
       ffx_last_size.first = properties.frontbuffer_width;
       ffx_last_size.second = properties.frontbuffer_height;
     }
-    if (config.GetEffect() == GuestOutputPaintConfig::Effect::kFsr &&
+    if ((config.GetEffect() == GuestOutputPaintConfig::Effect::kFsr ||
+     config.GetEffect() == GuestOutputPaintConfig::Effect::kFsr2) &&
         (ffx_last_size.first < output_width_clamped ||
          ffx_last_size.second < output_height_clamped)) {
       // AMD FidelityFX Super Resolution - upsample along at least one axis.
