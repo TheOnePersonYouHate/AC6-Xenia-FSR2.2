@@ -188,7 +188,7 @@ EmulatorWindow::EmulatorWindow(Emulator* emulator,
 #ifdef XE_BUILD_IS_PR
                 "PR#" XE_BUILD_PR_NUMBER " - "
 #endif
-                XE_BUILD_BRANCH "@" XE_BUILD_COMMIT_SHORT " on " XE_BUILD_DATE
+                " (" XE_BUILD_BRANCH "@" XE_BUILD_COMMIT_SHORT " on " XE_BUILD_DATE
                 ")";
 
   LoadRecentlyLaunchedTitles();
@@ -403,7 +403,7 @@ void EmulatorWindow::DisplayConfigDialog::OnDraw(ImGuiIO& io) {
               ImGuiTreeNodeFlags_Framed | ImGuiTreeNodeFlags_DefaultOpen)) {
         // Filtering effect.
         int new_effect_index = int(new_presenter_config.GetEffect());
-        ImGui::RadioButton(
+                ImGui::RadioButton(
             "None / Bilinear", &new_effect_index,
             int(ui::Presenter::GuestOutputPaintConfig::Effect::kBilinear));
         ImGui::RadioButton(
@@ -413,10 +413,11 @@ void EmulatorWindow::DisplayConfigDialog::OnDraw(ImGuiIO& io) {
         ImGui::RadioButton(
             "AMD FidelityFX Super Resolution 1.0 (FSR)", &new_effect_index,
             int(ui::Presenter::GuestOutputPaintConfig::Effect::kFsr));
-       ImGui::RadioButton(
-    "AMD FidelityFX Super Resolution 2.0 (FSR2)", &new_effect_index,
-    int(ui::Presenter::GuestOutputPaintConfig::Effect::kFsr2));
-// FSR2 sharpness slider
+        ImGui::RadioButton(
+            "AMD FidelityFX Super Resolution 2.0 (FSR2)", &new_effect_index,
+            int(ui::Presenter::GuestOutputPaintConfig::Effect::kFsr2));
+
+        // FSR2 sharpness slider (only show when FSR2 is selected)
         if (new_effect_index == int(ui::Presenter::GuestOutputPaintConfig::Effect::kFsr2)) {
           float sharpness = new_presenter_config.GetFsrSharpnessReduction();
           if (ImGui::SliderFloat("FSR2 Sharpness Reduction", &sharpness, -2.0f, 2.0f, "%.2f")) {
@@ -914,7 +915,7 @@ bool EmulatorWindow::Initialize() {
         MenuItem::Type::kString, "Recent changes on GitHub...", []() {
           LaunchWebBrowser(
               "https://github.com/xenia-canary/xenia-canary/"
-              "compare/" XE_BUILD_COMMIT "..." XE_BUILD_BRANCH);
+              "compare/" XE_BUILD_COMMIT "..." XE_BUILD_BRANCH
         }));
     help_menu->AddChild(MenuItem::Create(MenuItem::Type::kSeparator));
     help_menu->AddChild(MenuItem::Create(
