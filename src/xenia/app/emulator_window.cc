@@ -399,22 +399,46 @@ void EmulatorWindow::DisplayConfigDialog::OnDraw(ImGuiIO& io) {
         current_presenter_config;
 
     if (ImGui::TreeNodeEx(
-            "Resampling and sharpening",
-            ImGuiTreeNodeFlags_Framed | ImGuiTreeNodeFlags_DefaultOpen)) {
-      // Filtering effect.
-      int new_effect_index = int(new_presenter_config.GetEffect());
-      ImGui::RadioButton(
-          "None / Bilinear", &new_effect_index,
-          int(ui::Presenter::GuestOutputPaintConfig::Effect::kBilinear));
-      ImGui::RadioButton(
-          "AMD FidelityFX Contrast Adaptive Sharpening (CAS)",
-          &new_effect_index,
-          int(ui::Presenter::GuestOutputPaintConfig::Effect::kCas));
-      ImGui::RadioButton(
-          "AMD FidelityFX Super Resolution 1.0 (FSR)", &new_effect_index,
-          int(ui::Presenter::GuestOutputPaintConfig::Effect::kFsr));
-      new_presenter_config.SetEffect(
+              "Resampling and sharpening",
+              ImGuiTreeNodeFlags_Framed | ImGuiTreeNodeFlags_DefaultOpen)) {
+        // Filtering effect.
+        int new_effect_index = int(new_presenter_config.GetEffect());
+        ImGui::RadioButton(
+            "None / Bilinear", &new_effect_index,
+            int(ui::Presenter::GuestOutputPaintConfig::Effect::kBilinear));
+        ImGui::RadioButton(
+            "AMD FidelityFX Contrast Adaptive Sharpening (CAS)",
+            &new_effect_index,
+            int(ui::Presenter::GuestOutputPaintConfig::Effect::kCas));
+        ImGui::RadioButton(
+            "AMD FidelityFX Super Resolution 1.0 (FSR)", &new_effect_index,
+            int(ui::Presenter::GuestOutputPaintConfig::Effect::kFsr));
+       ImGui::RadioButton(
+    "AMD FidelityFX Super Resolution 2.0 (FSR2)", &new_effect_index,
+    int(ui::Presenter::GuestOutputPaintConfig::Effect::kFsr2));
+// FSR2 sharpness slider
+        if (new_effect_index == int(ui::Presenter::GuestOutputPaintConfig::Effect::kFsr2)) {
+          float sharpness = new_presenter_config.GetFsrSharpnessReduction();
+          if (ImGui::SliderFloat("FSR2 Sharpness Reduction", &sharpness, -2.0f, 2.0f, "%.2f")) {
+            new_presenter_config.SetFsrSharpnessReduction(sharpness);
+          }
+          ImGui::SameLine();
+          ImGui::Text("(lower = sharper)");
+        }
+
+// Force real FSR2 when selected
+if (new_effect_index == int(ui::Presenter::GuestOutputPaintConfig::Effect::kFsr2)) {
+    new_presenter_config.SetEffect(ui::Presenter::GuestOutputPaintConfig::Effect::kFsr2);
+}
+
+        new_presenter_config.SetEffect(
           ui::Presenter::GuestOutputPaintConfig::Effect(new_effect_index));
+
+      // Strong temporary force: force FSR2 path when selected
+      if (new_effect_index == int(ui::Presenter::GuestOutputPaintConfig::Effect::kFsr2)) {
+        // Force FSR2 by setting it directly and bypassing normal flow for testing
+        new_presenter_config.SetEffect(ui::Presenter::GuestOutputPaintConfig::Effect::kFsr2);
+      }
 
       // effect_description must be one complete, but short enough, sentence per
       // line, as TextWrapped doesn't work correctly in auto-resizing windows
