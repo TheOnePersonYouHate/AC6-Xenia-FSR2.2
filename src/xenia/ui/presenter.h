@@ -198,11 +198,11 @@ class Presenter {
     enum class Effect {
       kBilinear,
       kCas,
-      // AMD FidelityFX Super Resolution upsampling, Contrast Adaptive
+            // AMD FidelityFX Super Resolution upsampling, Contrast Adaptive
       // Sharpening otherwise.
       kFsr,
-      // AMD FidelityFX Super Resolution 2.0 (temporal upscaling)
-      kFsr2,
+      // AMD FidelityFX Super Resolution 2.0 (temporal upscaling) — stub for now
+      kFfxFsr2,
     };
 
     // This value is used as a lerp factor.

@@ -833,50 +833,65 @@ Presenter::GuestOutputPaintFlow Presenter::GetGuestOutputPaintFlow(
   uint32_t output_width_clamped = std::min(output_width, max_rt_width);
   uint32_t output_height_clamped = std::min(output_height, max_rt_height);
 
-  if (config.GetEffect() == GuestOutputPaintConfig::Effect::kCas ||
-      config.GetEffect() == GuestOutputPaintConfig::Effect::kFsr) {
-    // FidelityFX Super Resolution and Contrast Adaptive Sharpening only work
-    // good for up to 2x2 upscaling due to the way they fetch texels.
-    // CAS is primarily a sharpening filter, not an upscaling one (its upscaling
-    // eliminates reduces blurriness, but doesn't preserve the shapes of edges,
-    // and executing it multiple times will only result in oversharpening. So,
-    // using it for scales only of up to 2x2, then simply stretching with
-    // bilinear filtering.
-    // EASU of FSR, however, preserves edges, it's not supposed to blur them or
-    // to make them jagged, so it can be executed multiple times - running
-    // multiple EASU passes for scale factors of over 2x2.
-    // Just one EASU pass rather than multiple for scaling to factors bigger
-    // than 2x2 (especially significantly bigger, such as 1152x640 to 3840x2160,
-    // or 3.333x3.375) results in blurry edges and an overall noisy look,
-    // multiple passes improve visual stability.
-    std::pair<uint32_t, uint32_t> ffx_last_size;
-    if (flow.effect_count) {
-      ffx_last_size = flow.effect_output_sizes[flow.effect_count - 1];
-    } else {
-      ffx_last_size.first = properties.frontbuffer_width;
-      ffx_last_size.second = properties.frontbuffer_height;
-    }
-    if (config.GetEffect() == GuestOutputPaintConfig::Effect::kFsr &&
-        (ffx_last_size.first < output_width_clamped ||
-         ffx_last_size.second < output_height_clamped)) {
-      // AMD FidelityFX Super Resolution - upsample along at least one axis.
-      // Using the output size clamped to the maximum render target size here as
-      // EASU will always write to intermediate images, and RCAS supports only
-      // 1:1.
-      uint32_t easu_max_passes = config.GetFsrMaxUpsamplingPasses();
-      uint32_t easu_pass_count = 0;
-      while (easu_pass_count < easu_max_passes &&
-             (ffx_last_size.first < output_width_clamped ||
-              ffx_last_size.second < output_height_clamped)) {
-        ffx_last_size.first =
-            std::min(ffx_last_size.first * uint32_t(2), output_width_clamped);
-        ffx_last_size.second =
-            std::min(ffx_last_size.second * uint32_t(2), output_height_clamped);
+          if (config.GetEffect() == GuestOutputPaintConfig::Effect::kCas ||
+        config.GetEffect() == GuestOutputPaintConfig::Effect::kFsr ||
+        config.GetEffect() == GuestOutputPaintConfig::Effect::kFfxFsr2) {
+      // FidelityFX Super Resolution and Contrast Adaptive Sharpening only work
+      // good for up to 2x2 upscaling due to the way they fetch texels.
+      // CAS is primarily a sharpening filter, not an upscaling one (its upscaling
+      // eliminates reduces blurriness, but doesn't preserve the shapes of edges,
+      // and executing it multiple times will only result in oversharpening. So,
+      // using it for scales only of up to 2x2, then simply stretching with
+      // bilinear filtering.
+      // EASU of FSR, however, preserves edges, it's not supposed to blur them or
+      // to make them jagged, so it can be executed multiple times - running
+      // multiple EASU passes for scale factors of over 2x2.
+      // Just one EASU pass rather than multiple for scaling to factors bigger
+      // than 2x2 (especially significantly bigger, such as 1152x640 to 3840x2160,
+      // or 3.333x3.375) results in blurry edges and an overall noisy look,
+      // multiple passes improve visual stability.
+
+      std::pair<uint32_t, uint32_t> ffx_last_size;
+      if (flow.effect_count) {
+        ffx_last_size = flow.effect_output_sizes[flow.effect_count - 1];
+      } else {
+        ffx_last_size.first = properties.frontbuffer_width;
+        ffx_last_size.second = properties.frontbuffer_height;
+      }
+
+      if (config.GetEffect() == GuestOutputPaintConfig::Effect::kFsr &&
+          (ffx_last_size.first < output_width_clamped ||
+           ffx_last_size.second < output_height_clamped)) {
+        // AMD FidelityFX Super Resolution 1.0 - upsample along at least one axis.
+        uint32_t easu_max_passes = config.GetFsrMaxUpsamplingPasses();
+        uint32_t easu_pass_count = 0;
+        while (easu_pass_count < easu_max_passes &&
+               (ffx_last_size.first < output_width_clamped ||
+                ffx_last_size.second < output_height_clamped)) {
+          ffx_last_size.first =
+              std::min(ffx_last_size.first * uint32_t(2), output_width_clamped);
+          ffx_last_size.second =
+              std::min(ffx_last_size.second * uint32_t(2), output_height_clamped);
+          assert_true(flow.effect_count < flow.effects.size());
+          flow.effect_output_sizes[flow.effect_count] = ffx_last_size;
+          flow.effects[flow.effect_count++] = GuestOutputPaintEffect::kFsrEasu;
+          ++easu_pass_count;
+        }
+      } else if (config.GetEffect() == GuestOutputPaintConfig::Effect::kFfxFsr2) {
+        // TODO: Real FSR2 temporal upscaling will go here.
+        // We need: color buffer, depth buffer, motion vectors from the guest GPU.
+        // For now this is a safe stub so your UI radio button works without crashing.
+        // We will add the real passes (Upscale, Sharpen, Reactive mask) in small steps later.
         assert_true(flow.effect_count < flow.effects.size());
         flow.effect_output_sizes[flow.effect_count] = ffx_last_size;
-        flow.effects[flow.effect_count++] = GuestOutputPaintEffect::kFsrEasu;
-        ++easu_pass_count;
+        flow.effects[flow.effect_count++] = GuestOutputPaintEffect::kFfxFsr2Upscale;
       }
+
+      // Always add RCAS for FSR1 and FSR2 (for now). We'll make this smarter later.
+      assert_true(flow.effect_count < flow.effects.size());
+      flow.effect_output_sizes[flow.effect_count] = ffx_last_size;
+      flow.effects[flow.effect_count++] = GuestOutputPaintEffect::kFsrRcas;
+    } else {
       assert_true(flow.effect_count < flow.effects.size());
       flow.effect_output_sizes[flow.effect_count] = ffx_last_size;
       flow.effects[flow.effect_count++] = GuestOutputPaintEffect::kFsrRcas;
