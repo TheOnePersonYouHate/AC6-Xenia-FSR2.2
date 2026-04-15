@@ -2428,9 +2428,18 @@ void D3D12CommandProcessor::IssueSwap(uint32_t frontbuffer_ptr,
         // presenter so it can submit its own commands for displaying it to the
         // queue.
         SubmitBarriers();
+
+        // === FSR2 2.2.1 DISPATCH ===
+        // Run FSR2 as the final post-processing step (after gamma/FXAA)
+        if (fsr2_enabled_) {
+          DispatchFsr2(apply_gamma_dest,
+                       uint32_t(swap_texture_desc.Width),
+                       uint32_t(swap_texture_desc.Height));
+        }
+        // === END FSR2 2.2.1 DISPATCH ===
+
         EndSubmission(true);
         return true;
-      });
 
   // End the frame even if did not present for any reason (the image refresher
   // was not called), to prevent leaking per-frame resources.

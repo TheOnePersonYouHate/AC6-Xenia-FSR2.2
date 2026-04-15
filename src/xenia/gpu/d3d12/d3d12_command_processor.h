@@ -41,6 +41,10 @@
 #include "xenia/ui/d3d12/d3d12_provider.h"
 #include "xenia/ui/d3d12/d3d12_upload_buffer_pool.h"
 #include "xenia/ui/d3d12/d3d12_util.h"
+ 
++// FSR2 2.2.1 integration
++#include "ffx_fsr2_api.h"
++#include "ffx_fsr2_api_dx12.h"
 
 namespace xe {
 namespace gpu {
@@ -795,7 +799,26 @@ class D3D12CommandProcessor final : public CommandProcessor {
 
   std::atomic<bool> pix_capture_requested_ = false;
   bool pix_capturing_;
+// === FSR2 2.2.1 INTEGRATION ===
+  bool fsr2_enabled_ = false;
+  int fsr2_quality_preset_ = 1;   // 0 = Ultra Quality, 1 = Quality, 2 = Balanced, 3 = Performance
+  bool fsr2_sharpen_enabled_ = true;
 
+  FfxFsr2Context fsr2_context_ = {};
+  bool fsr2_context_created_ = false;
+
+  // Previous frame color texture for motion vector approximation (temporal data)
+  Microsoft::WRL::ComPtr<ID3D12Resource> fsr2_previous_color_;
+  D3D12_RESOURCE_STATES fsr2_previous_color_state_ = D3D12_RESOURCE_STATE_COMMON;
+
+  // Helper declarations (implementation will go in .cc)
+  bool InitializeFsr2Context();
+  void DestroyFsr2Context();
+  void DispatchFsr2(ID3D12Resource* current_color, uint32_t width, uint32_t height);
+  bool EnsureFsr2PreviousColorTexture(uint32_t width, uint32_t height);
+  ID3D12Resource* GetDepthTextureForFsr2();  // TODO: wire to render target cache later
+  // === END FSR2 INTEGRATION ===
+  
   // Temporary storage for memexport stream constants used in the draw.
   std::vector<draw_util::MemExportRange> memexport_ranges_;
 };

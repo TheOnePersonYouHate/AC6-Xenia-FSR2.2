@@ -39,3 +39,30 @@ if(XENIA_BUILD_MISC)
   endif()
   xe_target_defaults(xenia-gpu-d3d12-trace-dump)
 endif()
+
+# === FSR2 2.2.1 INTEGRATION ===
+set(FFX_FSR2_ROOT "${PROJECT_SOURCE_DIR}/third_party/FidelityFX-FSR2" CACHE PATH "Path to FSR2 v2.2.1")
+
+if(EXISTS "${FFX_FSR2_ROOT}/src/ffx-fsr2-api")
+  target_include_directories(xenia-gpu-d3d12 PUBLIC
+    "${FFX_FSR2_ROOT}/src/ffx-fsr2-api"
+    "${FFX_FSR2_ROOT}/src/ffx-fsr2-api/dx12"
+  )
+
+  if(EXISTS "${FFX_FSR2_ROOT}/bin/ffx_fsr2_api/ffx_fsr2_api_dx12_x64.lib")
+    target_link_libraries(xenia-gpu-d3d12 PUBLIC
+      "${FFX_FSR2_ROOT}/bin/ffx_fsr2_api/ffx_fsr2_api_dx12_x64.lib"
+    )
+    message(STATUS "FSR2 2.2.1: Linked prebuilt DX12 backend successfully")
+  else()
+    message(FATAL_ERROR 
+      "FSR2 ERROR: Prebuilt library not found!\n"
+      "Expected file: ${FFX_FSR2_ROOT}/bin/ffx_fsr2_api/ffx_fsr2_api_dx12_x64.lib\n\n"
+      "The file should be there from the build you just did.")
+  endif()
+else()
+  message(FATAL_ERROR 
+    "FSR2 ERROR: SDK folder not found!\n"
+    "Expected: ${FFX_FSR2_ROOT}")
+endif()
+# === END FSR2 INTEGRATION ===
